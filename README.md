@@ -158,7 +158,13 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 llamafactory-cli train \
 	--use_fast_tokenizer \
 	--flash_attn fa2 \
 ```
-### Cite
+### Citation
+If you find this work helpful, please consider citing our paper:
 ```bash
-Kunpeng Kang, Shuaimin Li, Kaiyuan Zhang, Luyang Zhang, Jiasheng Si, Bing Xu, Kehai Chen, Muyun Yang, Wenpeng Lu. WSDPO: A Generative Framework for Word Sense Disambiguation via Chain-of-Thought and Preference Optimization. The 64th Annual Meeting of the Association for Computational Linguistics[C]. 2026. (CCF A)
+@inproceedings{Kang2026WSDPO,
+    author    = {Kunpeng Kang, Shuaimin Li, Kaiyuan Zhang, Luyang Zhang, Jiasheng Si, Bing Xu, Kehai Chen, Muyun Yang, Wenpeng Lu},
+    title     = {WSDPO: A Generative Framework for Word Sense Disambiguation via Chain-of-Thought and Preference Optimization},
+    booktitle = {Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics},
+    year      = {2026}
+}
 ```

@@ -1,14 +1,37 @@
-### WSDPO
-WSDPO is motivated by the limitation of existing generative WSD methods, which mainly rely on simple supervised fine-tuning and tend to learn surface generation patterns rather than truly discriminating word senses, leading to poor performance on rare and unseen senses. To address this, WSDPO introduces a “disambiguate-then-generate” training mechanism that combines disambiguation-aware chain-of-thought and preference optimization, enabling the model to produce more sense-faithful and accurate WSD outputs.
+# [ACL2026] WSDPO:A Generative Word Sense Disambiguation Framework with Chain-of-Thought and Preference Optimization
 
-## Architecture
+<p align="center">
+    🤗 <a href="https://huggingface.co/WSDPO" target="_blank">HF Repo</a>
+</p>
+
+## 🤖️ WSDPO
+WSDPO is motivated by the limitation of existing generative WSD methods, which mainly rely on simple supervised fine-tuning and tend to learn surface generation patterns rather than truly discriminating word senses, leading to poor performance on rare and unseen senses. To address this, WSDPO introduces a “disambiguate-then-generate” training mechanism that combines disambiguation-aware chain-of-thought and preference optimization, enabling the model to produce more sense-faithful and accurate WSD outputs.
 ![alt text](images/image.png)
 
-### How to use
+
+
+<a name="model"></a>
+## ⚙️ Released Models
+
+### All Available Datasets and Models
+
+All the trained models and datasets are available on HuggingFace. 
+
+
+| Name | HF Repo |
+|---|---|
+| Llama3.2-3B-Instruct-SFT | [🤗 HF Repo](https://huggingface.co/WSDPO/Llama-3.2-3B-Instruct-SFT) |
+| Llama3.2-3B-Instruct-SFT-DPO | [🤗 HF Repo](https://huggingface.co/WSDPO/Llama3.2-3B-Instruct-SFT-DPO) |
+| Qwen2.5-3B-Instruct-SFT | [🤗 HF Repo](https://huggingface.co/WSDPO/Qwen2.5-3B-Instruct-SFT) |
+| Qwen2.5-3B-Instruct-SFT-DPO | [🤗 HF Repo](https://huggingface.co/WSDPO/Qwen2.5-3B-Instruct-SFT-DPO) |
+| Disambiguation-Aware_CoT_Data_Construction | [🤗 HF Repo](https://huggingface.co/datasets/WSDPO/Disambiguation-Aware_CoT_Construction) |
+
+
+## 🔥 Training
 
 ### Step 0: Environment Setup
 
-**Install Lllamafactory=0.9.4**
+**Install Llamafactory=0.9.4**
 
 ```bash
 conda create -n WSDPO python=3.11.11
@@ -21,8 +44,9 @@ pip install -e ".[torch,metrics]"
 
 ```bash
 conda activate WSDPO
-pip install vllm=0.12.0
+pip install vllm==0.12.0
 ```
+
 
 ### Stage 1: Disambiguation-Aware CoT Construction
 
@@ -30,14 +54,13 @@ The first step of WSDPO is to use Qwen2.5-72B-Instruction to augment the trainin
 
 ```bash
 cd src
-python  CoT_Construction.py --sample_budget 6 --api_key ...
+python  CoT_Construction.py --sample_budget 6 --api_key sk-cqvvczjlbvjdnawktxfbxyblznqdabnmqylovjevvoggqcys
 ```
  `sample_budget` specifies how many chain-of-thought solution paths to synthesize for each data point in the training set. 
 
 
 Then, calculate the DGQS based on the gold gloss and filter out entries with a score lower than 0.8.
 ```bash
-
 cd ../utils
 python CoT_Clean.py
 ```
@@ -76,7 +99,7 @@ Run the following script in the LLaMA-Factory directory to perform supervised fi
 conda activate WSDPO
 CUDA_VISIBLE_DEVICES=0,1,2,3 \
 llamafactory-cli train \
-    --model_name_or_path ../Models/Llama-3.2-3B-Instruct \
+    --model_name_or_path /home/think/SYX/WSD/Models/Llama-3.2-3B-Instruct \
     --stage sft \
     --do_train \
     --finetuning_type lora \
@@ -88,7 +111,7 @@ llamafactory-cli train \
     --cutoff_len 1024 \
     --overwrite_cache \
     --preprocessing_num_workers 16 \
-    --output_dir ../outputs/COT_SFT_filtered \
+    --output_dir /home/think/SYX/WSD/outputs/COT_SFT_filtered \
     --logging_steps 5 \
     --report_to tensorboard \
     --run_name lora_sft \
@@ -124,14 +147,14 @@ python  DPO_Sample_Evaluate.py --pred ../result/outputs/COT_SFT_filtered-checkpo
 
 
 
-python CreateDPODataset.py -eval ../result/eval_sft_sample_filtered.json --sample ../result/outputs/COT_SFT_filtered-checkpoint-11360merge_sampling_default_semcor.json 
+python CreateDPODataset.py -eval /home/think/SYX/WSD/result/eval_sft_sample_2.5w_14Bfiltered_0.8_llama.json --sample /home/think/SYX/WSD/result/outputs/2.5w_14BCOT_SFT_filtered_0.8-checkpoint-11360merge_sampling_default_semcor.json 
 ```
 
 
 ```bash
 conda activate llama_factory
 CUDA_VISIBLE_DEVICES=0,1,2,3 llamafactory-cli train \
-	--model_name_or_path ../outputs/COT_SFT_filtered/checkpoint-5620merge \
+	--model_name_or_path /home/think/SYX/WSD/outputs/2.5w_3BCOT_SFT_filtered/checkpoint-5620merge \
 	--stage dpo \
 	--do_train \
 	--finetuning_type lora \
@@ -141,7 +164,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 llamafactory-cli train \
 	--cutoff_len 1024 \
 	--overwrite_cache \
 	--preprocessing_num_workers 16 \
-	--output_dir ../outputs/COT_SFT_DPO_filtered \
+	--output_dir /home/think/SYX/WSD/outputs/2.5w_COT_SFT_DPO_3Bfiltered_0.8_0.85_0.1 \
 	--logging_steps 5 \
 	--save_strategy epoch \
 	--report_to tensorboard \
@@ -158,9 +181,64 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 llamafactory-cli train \
 	--use_fast_tokenizer \
 	--flash_attn fa2 \
 ```
-### Citation
-If you find this work helpful, please consider citing our paper:
+
+
+
+## 📊 Evaluation
+
+### 1. Download the Pretrained Model
 ```bash
+git clone https://huggingface.co/WSDPO/Llama3.2-3B-Instruct-SFT-DPO
+````
+
+### 2. Install Dependencies
+
+```bash
+pip install vllm==0.12.0
+```
+
+### 3. Launch the Local Inference Server
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server \
+    --model /home/think/SYX/WSD/Models/Llama-3.2-3B-Instruct \
+    --served-model-name Llama3.2-3B-Instruct-SFT-DPO \
+    --port 8000 \
+    --gpu-memory-utilization 0.9 \
+    --max_model_len 1024
+```
+
+### 4. Evaluation Framework
+
+We adopt the evaluation framework proposed in the following paper:
+
+> **RoDEval: A Robust Word Sense Disambiguation Evaluation Framework for Large Language Models**
+> *(EMNLP 2025 Main Conference)*
+
+Clone the evaluation toolkit:
+
+```bash
+git clone https://github.com/DayDream405/RoDEval
+```
+
+### 5. Prompt Format
+
+The model is queried using the following prompt template:
+
+```python
+prompt = (
+    "Please determine the correct definition of the target word in the given context.\n"
+    "Context: {}\n"
+    "Target word: {}"
+).format(context, target)
+```
+
+
+## 📝 Citation
+
+If you find our work useful, please consider citing AdaptThink:
+
+```
 @inproceedings{Kang2026WSDPO,
     author    = {Kunpeng Kang, Shuaimin Li, Kaiyuan Zhang, Luyang Zhang, Jiasheng Si, Bing Xu, Kehai Chen, Muyun Yang, Wenpeng Lu},
     title     = {WSDPO: A Generative Framework for Word Sense Disambiguation via Chain-of-Thought and Preference Optimization},
